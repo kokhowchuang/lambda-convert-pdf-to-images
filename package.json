@@ -1,0 +1,40 @@
+{
+  "name": "pdf-to-images",
+  "version": "1.0.0",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --fix --cache",
+    "prettify": "prettier --write --ignore-path .gitignore '**/*.{css,html,js,json,md,yaml,yml}'"
+  },
+  "author": "Zinc Chuang",
+  "license": "ISC",
+  "dependencies": {
+    "archiver": "^3.1.1",
+    "glob": "^7.1.6",
+    "gs": "https://github.com/sina-masnadi/node-gs/tarball/master",
+    "rimraf": "^3.0.2",
+    "shelljs": "^0.8.4",
+    "stream": "0.0.2",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.616.0",
+    "eslint": "^5.12.1",
+    "eslint-config-maasglobal": "^2.0.6",
+    "eslint-plugin-import": "^2.15.0",
+    "prettier": "^1.16.1",
+    "serverless-offline": "^6.0.0-alpha.67",
+    "serverless-plugin-warmup": "^4.9.0",
+    "serverless-s3-local": "^0.5.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/zincchuang/pdftoimg.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/zincchuang/pdftoimg/issues"
+  },
+  "homepage": "https://gitlab.com/zincchuang/pdftoimg#readme",
+  "description": ""
+}

@@ -1,0 +1,15 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+# webpack 
+.webpack
+
+# Environment variables
+.env
+
+# Remove ghostscript files
+layer

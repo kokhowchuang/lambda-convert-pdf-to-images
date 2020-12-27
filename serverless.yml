@@ -1,0 +1,163 @@
+service: prime-conversion-tools
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  region: ap-southeast-1
+  profile: LocalAdmin
+  environment:
+    STAGE: ${self:provider.stage}
+    RAW_BUCKET: ${self:custom.bucket.RAW_BUCKET}
+    FILES_BUCKET: ${self:custom.bucket.FILES_BUCKET}
+    TASKS_TABLE: ${self:custom.table.TASKS_TABLE}
+    TEMPORARY_CREDENTIAL: ${self:custom.config.TEMPORARY_CREDENTIAL}
+    REGION: ${self:provider.region}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource:
+        - arn:aws:logs:*:*:* # allow replicated lambdas to create logs
+    - Effect: "Allow"
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+        - s3:ListBucket
+        - s3:ListBucketVersions
+      Resource:
+        - arn:aws:s3:::${self:custom.bucket.RAW_BUCKET}
+        - arn:aws:s3:::${self:custom.bucket.RAW_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+        - s3:ListBucket
+        - s3:ListBucketVersions
+      Resource:
+        - arn:aws:s3:::${self:custom.bucket.FILES_BUCKET}
+        - arn:aws:s3:::${self:custom.bucket.FILES_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.table.TASKS_TABLE}
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource: 
+        - arn:aws:lambda:*:*:* 
+
+plugins:
+  - serverless-s3-local
+  - serverless-offline
+  - serverless-plugin-warmup
+
+package:
+  exclude:
+    - .editorconfig
+    - .eslintignore
+    - .eslintrc.js
+    - .gitignore
+    - .prettierignore
+    - .prettierrc.js
+    - README.md
+    - package.json
+    - package-lock.json
+    - webpack.config.js
+    - .git/**
+    - .dynamodb/**
+    - node_modules/aws-sdk/**
+    - node_modules/eslint/**
+    - node_modules/eslint-config-maasglobal/**
+    - node_modules/eslint-plugin-import/**
+    - node_modules/prettier/**
+    - node_modules/serverless-offline/**
+    - node_modules/serverless-s3-local/**
+    - node_modules/serverless-webpackl/**
+    - node_modules/webpack/**
+
+custom: # Add custom section and include webpack configuration
+  stage: ${opt:stage, self:provider.stage}
+  bucket:
+    RAW_BUCKET: ${file(./serverless.env.yml):${self:custom.stage}.RAW_BUCKET}
+    FILES_BUCKET: ${file(./serverless.env.yml):${self:custom.stage}.FILES_BUCKET}
+  table:
+    TASKS_TABLE: ${file(./serverless.env.yml):${self:custom.stage}.TASKS_TABLE}
+  config:
+    RESERVED_CONCURRENCY: ${file(./serverless.env.yml):${self:custom.stage}.RESERVED_CONCURRENCY}
+    TEMPORARY_CREDENTIAL: ${file(./serverless.env.yml):config.TEMPORARY_CREDENTIAL}
+  s3:
+    port: 4568
+    directory: /Users/zincchuang/Documents/serverless
+  warmup:
+    enabled: true
+    prewarm: true
+    events:
+      - schedule: 'cron(0/5 0-10 ? * MON-FRI *)'
+
+functions:
+  convertPdfToPng:
+    handler: images/getPNG.handler
+    memorySize: 2048
+    timeout: 120
+    reservedConcurrency: ${self:custom.config.RESERVED_CONCURRENCY}
+    warmup: 
+      enabled:
+        - production
+    events:
+      - s3:
+          bucket: ${self:custom.bucket.RAW_BUCKET}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: pdftopng/
+            - suffix: .json
+          existing: true
+  convertPdfToJpg:
+    handler: images/getJPG.handler
+    memorySize: 2048
+    timeout: 120
+    reservedConcurrency: ${self:custom.config.RESERVED_CONCURRENCY}
+    warmup: 
+      enabled:
+        - production
+    events:
+      - s3:
+          bucket: ${self:custom.bucket.RAW_BUCKET}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: pdftojpg/
+            - suffix: .json
+          existing: true
+
+# Uncomment when testing locally
+resources:
+  Resources:
+    RawBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucket.RAW_BUCKET}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        VersioningConfiguration:
+          Status: Enabled
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ['*']
+              AllowedMethods: [GET, PUT]
+              AllowedOrigins: ['*']
+              Id: CORSRuleId1
+              MaxAge: '3600'
